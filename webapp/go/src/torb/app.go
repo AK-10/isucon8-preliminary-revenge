@@ -1,4 +1,69 @@
+
 package main
+
+// +----------------+
+// | Tables_in_torb |
+// +----------------+
+// | administrators |
+// | events         |
+// | reservations   |
+// | sheets         |
+// | users          |
+// +----------------+
+
+// mysql> show columns from sheets;
+// +-------+------------------+------+-----+---------+----------------+
+// | Field | Type             | Null | Key | Default | Extra          |
+// +-------+------------------+------+-----+---------+----------------+
+// | id    | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+// | rank  | varchar(128)     | NO   | MUL | NULL    |                |
+// | num   | int(10) unsigned | NO   |     | NULL    |                |
+// | price | int(10) unsigned | NO   |     | NULL    |                |
+// +-------+------------------+------+-----+---------+----------------+
+
+// mysql> show columns from users;
+// +------------+------------------+------+-----+---------+----------------+
+// | Field      | Type             | Null | Key | Default | Extra          |
+// +------------+------------------+------+-----+---------+----------------+
+// | id         | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+// | nickname   | varchar(128)     | NO   |     | NULL    |                |
+// | login_name | varchar(128)     | NO   | UNI | NULL    |                |
+// | pass_hash  | varchar(128)     | NO   |     | NULL    |                |
+// +------------+------------------+------+-----+---------+----------------+
+
+
+// mysql> show columns from reservations;
+// +-------------+------------------+------+-----+---------+----------------+
+// | Field       | Type             | Null | Key | Default | Extra          |
+// +-------------+------------------+------+-----+---------+----------------+
+// | id          | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+// | event_id    | int(10) unsigned | NO   | MUL | NULL    |                |
+// | sheet_id    | int(10) unsigned | NO   |     | NULL    |                |
+// | user_id     | int(10) unsigned | NO   |     | NULL    |                |
+// | reserved_at | datetime(6)      | NO   |     | NULL    |                |
+// | canceled_at | datetime(6)      | YES  |     | NULL    |                |
+// +-------------+------------------+------+-----+---------+----------------+
+
+// mysql> show columns from administrators;
+// +------------+------------------+------+-----+---------+----------------+
+// | Field      | Type             | Null | Key | Default | Extra          |
+// +------------+------------------+------+-----+---------+----------------+
+// | id         | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+// | nickname   | varchar(128)     | NO   |     | NULL    |                |
+// | login_name | varchar(128)     | NO   | UNI | NULL    |                |
+// | pass_hash  | varchar(128)     | NO   |     | NULL    |                |
+// +------------+------------------+------+-----+---------+----------------+
+
+// mysql> show columns from events;
+// +-----------+------------------+------+-----+---------+----------------+
+// | Field     | Type             | Null | Key | Default | Extra          |
+// +-----------+------------------+------+-----+---------+----------------+
+// | id        | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+// | title     | varchar(128)     | NO   |     | NULL    |                |
+// | public_fg | tinyint(1)       | NO   |     | NULL    |                |
+// | closed_fg | tinyint(1)       | NO   |     | NULL    |                |
+// | price     | int(10) unsigned | NO   |     | NULL    |                |
+// +-----------+------------------+------+-----+---------+----------------+
 
 import (
 	"bytes"
@@ -295,7 +360,7 @@ func fillinAdministrator(next echo.HandlerFunc) echo.HandlerFunc {
 
 func validateRank(rank string) bool {
 	var count int
-	db.QueryRow("SELECT COUNT(*) FROM sheets WHERE `rank` = ?", rank).Scan(&count)
+	db.QueryRow("SELECT COUNT(id) FROM sheets WHERE `rank` = ?", rank).Scan(&count)
 	return count > 0
 }
 
