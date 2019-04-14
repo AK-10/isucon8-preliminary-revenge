@@ -487,7 +487,9 @@ func main() {
 		// ORDER BY IFNULL(r.canceled_at, r.reserved_at) DESC                        : reservationに対して行われたアクションの時間でソート
 		// LIMIT 5                                                                   : 5個とる
 
-		rows, err := db.Query("SELECT r.*, s.rank sheet_rank, s.num sheet_num, s.price sheet_price FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id WHERE r.user_id = ? ORDER BY IFNULL(r.canceled_at, r.reserved_at) DESC LIMIT 5", user.ID)
+		// rows, err := db.Query("SELECT r.*, s.rank sheet_rank, s.num sheet_num, s.price sheet_price FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id WHERE r.user_id = ? ORDER BY IFNULL(r.canceled_at, r.reserved_at) DESC LIMIT 5", user.ID)
+		rows, err := db.Query("SELECT r.*, s.rank sheet_rank, s.num sheet_num, s.price, e.* FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.user_id = ? ORDER BY IFNULL(r.canceled_at, r.reserved_at) DESC LIMIT 5", user.ID)
+		
 		if err != nil {
 			return err
 		}
@@ -499,7 +501,8 @@ func main() {
 		for rows.Next() {
 			var reservation Reservation
 			var sheet Sheet
-			if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
+			var event Event
+			if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num, &sheet.Price, &event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
 				return err
 			}
 
@@ -508,13 +511,15 @@ func main() {
 				return err
 			}
 
-			price := event.Sheets[sheet.Rank].Price
+			if reservation.CanceledAt == nil {
+				// totalPrice += price
+				totalPrice += sheet.Price + event_price
+			}
+
+			// price := event.Sheets[sheet.Rank].Price
 			// "SELECT IFNULL(SUM(e.price + s.price), 0) FROM reservations r 
 			// INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id 
 			// WHERE r.user_id = ? AND r.canceled_at IS NULL
-			if reservation.CanceledAt == nil {
-				totalPrice += price
-			}
 			
 			event.Sheets = nil
 			event.Total = 0
@@ -523,7 +528,7 @@ func main() {
 			reservation.Event = event
 			reservation.SheetRank = sheet.Rank
 			reservation.SheetNum = sheet.Num
-			// reservation.Price = price
+			reservation.Price = price
 		
 			reservation.ReservedAtUnix = reservation.ReservedAt.Unix()
 			if reservation.CanceledAt != nil {
@@ -606,10 +611,14 @@ func main() {
 		}
 		return c.JSON(200, user)
 	})
+
+
 	e.POST("/api/actions/logout", func(c echo.Context) error {
 		sessDeleteUserID(c)
 		return c.NoContent(204)
 	}, loginRequired)
+
+
 	e.GET("/api/events", func(c echo.Context) error {
 		events, err := getEvents(true)
 		if err != nil {
@@ -620,6 +629,8 @@ func main() {
 		}
 		return c.JSON(200, events)
 	})
+
+
 	e.GET("/api/events/:id", func(c echo.Context) error {
 		eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
@@ -642,6 +653,8 @@ func main() {
 		}
 		return c.JSON(200, sanitizeEvent(event))
 	})
+
+
 	e.POST("/api/events/:id/actions/reserve", func(c echo.Context) error {
 		eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
@@ -712,6 +725,8 @@ func main() {
 			"sheet_num":  sheet.Num,
 		})
 	}, loginRequired)
+
+
 	e.DELETE("/api/events/:id/sheets/:rank/:num/reservation", func(c echo.Context) error {
 		eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
