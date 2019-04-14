@@ -506,14 +506,15 @@ func main() {
 				return err
 			}
 
-			event, err := getEvent(reservation.EventID, -1)
-			if err != nil {
-				return err
-			}
+			// event, err := getEvent(reservation.EventID, -1)
+			// if err != nil {
+			// 	return err
+			// }
 
+			price := sheet.Price + event.Price
 			if reservation.CanceledAt == nil {
 				// totalPrice += price
-				totalPrice += sheet.Price + event_price
+				totalPrice += price
 			}
 
 			// price := event.Sheets[sheet.Rank].Price
@@ -525,10 +526,10 @@ func main() {
 			event.Total = 0
 			event.Remains = 0
 
-			reservation.Event = event
+			reservation.Event = &event
 			reservation.SheetRank = sheet.Rank
 			reservation.SheetNum = sheet.Num
-			reservation.Price = price
+			reservation.Price = price 
 		
 			reservation.ReservedAtUnix = reservation.ReservedAt.Unix()
 			if reservation.CanceledAt != nil {
