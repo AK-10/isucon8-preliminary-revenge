@@ -508,12 +508,12 @@ func main() {
 				return err
 			}
 
-			eventPrice := event.Sheets[sheet.Rank].Price
+			price := event.Sheets[sheet.Rank].Price
 			// "SELECT IFNULL(SUM(e.price + s.price), 0) FROM reservations r 
 			// INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id 
 			// WHERE r.user_id = ? AND r.canceled_at IS NULL
 			if reservation.CanceledAt == nil {
-				totalPrice += (eventPrice + sheet.Price) 
+				totalPrice += price
 			}
 			
 			event.Sheets = nil
