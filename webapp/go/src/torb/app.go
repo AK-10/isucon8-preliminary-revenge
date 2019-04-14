@@ -480,13 +480,39 @@ func main() {
 			return resError(c, "forbidden", 403)
 		}
 
-		rows, err := db.Query("SELECT r.*, s.rank AS sheet_rank, s.num AS sheet_num FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id WHERE r.user_id = ? ORDER BY IFNULL(r.canceled_at, r.reserved_at) DESC LIMIT 5", user.ID)
+		// reservationとsheet.rankが欲しい   IFNULL(r.canceled_at, r.reserved_at): canceled_atがNULLのときreserved_atが帰ってくる，そうでない場合はcanceled_at
+		
+		// SELECT r.*, s.rank sheet_rank, s.num sheet_num FROM reservations r        : reservationとsheetランク，sheet数を取得
+		// INNER JOIN sheets s ON s.id = r.sheet_id WHERE r.user_id = ?              : sheet.id == reservation.sheet_idでsheetをジョイン, reservationはログイン中のuser 
+		// ORDER BY IFNULL(r.canceled_at, r.reserved_at) DESC                        : reservationに対して行われたアクションの時間でソート
+		// LIMIT 5                                                                   : 5個とる
+
+		rows, err := db.Query("SELECT r.*, s.rank sheet_rank, s.num sheet_num FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id WHERE r.user_id = ? ORDER BY IFNULL(r.canceled_at, r.reserved_at) DESC LIMIT 5", user.ID)
 		if err != nil {
 			return err
 		}
 		defer rows.Close()
 
+		// rowsは最大5個
+		// maxRowsNum := 5
+		// var recentReservations [5]Reservation
+
+		// for i := 0; i < 5; i++ {
+		// 	var reservation Reservation
+		// 	var sheet Sheet
+		// 	if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num); err != nil {
+		// 		return err
+		// 	}
+		// 	even, err := getEvent(reservation.EventID, -1)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// 	price := sheet.Price
+			
+		// }
 		var recentReservations []Reservation
+		var totalPrice int64 = 0
+
 		for rows.Next() {
 			var reservation Reservation
 			var sheet Sheet
@@ -498,29 +524,43 @@ func main() {
 			if err != nil {
 				return err
 			}
-			price := event.Sheets[sheet.Rank].Price
-			event.Sheets = nil
-			event.Total = 0
-			event.Remains = 0
 
-			reservation.Event = event
-			reservation.SheetRank = sheet.Rank
-			reservation.SheetNum = sheet.Num
-			reservation.Price = price
+			eventPrice := event.Sheets[sheet.Rank].Price
+			// "SELECT IFNULL(SUM(e.price + s.price), 0) FROM reservations r 
+			// INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id 
+			// WHERE r.user_id = ? AND r.canceled_at IS NULL
+			if reservation.CanceledAt == nil {
+				totalPrice += (eventPrice + sheet.Price) 
+			}
+			
+			
+			// event.Sheets = nil
+			// event.Total = 0
+			// event.Remains = 0
+
+			// reservation.Event = event
+			// reservation.SheetRank = sheet.Rank
+			// reservation.SheetNum = sheet.Num
+			// reservation.Price = price
 			reservation.ReservedAtUnix = reservation.ReservedAt.Unix()
 			if reservation.CanceledAt != nil {
 				reservation.CanceledAtUnix = reservation.CanceledAt.Unix()
 			}
+			// recentReservations[i] = reservation
 			recentReservations = append(recentReservations, reservation)
 		}
+		// if recentReservations[0] == nil {
+
+		// }
 		if recentReservations == nil {
 			recentReservations = make([]Reservation, 0)
 		}
 
-		var totalPrice int
-		if err := db.QueryRow("SELECT IFNULL(SUM(e.price + s.price), 0) FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.user_id = ? AND r.canceled_at IS NULL", user.ID).Scan(&totalPrice); err != nil {
-			return err
-		}
+
+		// var totalPrice int
+		// if err := db.QueryRow("SELECT IFNULL(SUM(e.price + s.price), 0) FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.user_id = ? AND r.canceled_at IS NULL", user.ID).Scan(&totalPrice); err != nil {
+		// 	return err
+		// }
 
 		rows, err = db.Query("SELECT event_id FROM reservations WHERE user_id = ? GROUP BY event_id ORDER BY MAX(IFNULL(canceled_at, reserved_at)) DESC LIMIT 5", user.ID)
 		if err != nil {
