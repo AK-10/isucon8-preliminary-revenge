@@ -541,16 +541,14 @@ func main() {
 			reservation.SheetRank = sheet.Rank
 			reservation.SheetNum = sheet.Num
 			// reservation.Price = price
+		
 			reservation.ReservedAtUnix = reservation.ReservedAt.Unix()
 			if reservation.CanceledAt != nil {
 				reservation.CanceledAtUnix = reservation.CanceledAt.Unix()
 			}
-			// recentReservations[i] = reservation
 			recentReservations = append(recentReservations, reservation)
 		}
-		// if recentReservations[0] == nil {
-
-		// }
+		
 		if recentReservations == nil {
 			recentReservations = make([]Reservation, 0)
 		}
@@ -593,6 +591,8 @@ func main() {
 			"recent_events":       recentEvents,
 		})
 	}, loginRequired)
+
+
 	e.POST("/api/actions/login", func(c echo.Context) error {
 		var params struct {
 			LoginName string `json:"login_name"`
