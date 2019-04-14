@@ -487,36 +487,19 @@ func main() {
 		// ORDER BY IFNULL(r.canceled_at, r.reserved_at) DESC                        : reservationに対して行われたアクションの時間でソート
 		// LIMIT 5                                                                   : 5個とる
 
-		rows, err := db.Query("SELECT r.*, s.rank sheet_rank, s.num sheet_num FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id WHERE r.user_id = ? ORDER BY IFNULL(r.canceled_at, r.reserved_at) DESC LIMIT 5", user.ID)
+		rows, err := db.Query("SELECT r.*, s.rank sheet_rank, s.num sheet_num, s.price sheet_price FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id WHERE r.user_id = ? ORDER BY IFNULL(r.canceled_at, r.reserved_at) DESC LIMIT 5", user.ID)
 		if err != nil {
 			return err
 		}
 		defer rows.Close()
 
-		// rowsは最大5個
-		// maxRowsNum := 5
-		// var recentReservations [5]Reservation
-
-		// for i := 0; i < 5; i++ {
-		// 	var reservation Reservation
-		// 	var sheet Sheet
-		// 	if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num); err != nil {
-		// 		return err
-		// 	}
-		// 	even, err := getEvent(reservation.EventID, -1)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	price := sheet.Price
-			
-		// }
 		var recentReservations []Reservation
 		var totalPrice int64 = 0
 
 		for rows.Next() {
 			var reservation Reservation
 			var sheet Sheet
-			if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num); err != nil {
+			if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
 				return err
 			}
 
@@ -548,7 +531,7 @@ func main() {
 			}
 			recentReservations = append(recentReservations, reservation)
 		}
-		
+
 		if recentReservations == nil {
 			recentReservations = make([]Reservation, 0)
 		}
