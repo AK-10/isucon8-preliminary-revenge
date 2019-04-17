@@ -511,9 +511,9 @@ func main() {
 			// 	return err
 			// }
 
+			// price
 			price := sheet.Price + event.Price
 			if reservation.CanceledAt == nil {
-				// totalPrice += price
 				totalPrice += price
 			}
 
@@ -530,7 +530,8 @@ func main() {
 			reservation.SheetRank = sheet.Rank
 			reservation.SheetNum = sheet.Num
 			reservation.Price = price 
-		
+			
+
 			reservation.ReservedAtUnix = reservation.ReservedAt.Unix()
 			if reservation.CanceledAt != nil {
 				reservation.CanceledAtUnix = reservation.CanceledAt.Unix()
