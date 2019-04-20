@@ -340,6 +340,10 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 			sheet.Mine = reservation.UserID == loginUserID
 			sheet.Reserved = true
 			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
+		} else {
+			sheet.Mine = false
+			sheet.Reserved = false
+			sheet.ReservedAt = nil
 		}
 		
 		// sheets << sheet
