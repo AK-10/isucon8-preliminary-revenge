@@ -334,6 +334,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 
 		// sheetsのあーだこーだ
 		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
+		println(reservation.ReservedAt)
 		if reservation.ReservedAt != nil {
 			event.Sheets[sheet.Rank].Remains--
 			event.Remains--
