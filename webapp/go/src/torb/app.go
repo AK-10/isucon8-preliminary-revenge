@@ -309,7 +309,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 
 	event.Total = 1000
 	event.Remains = 1000
-	
+
 	event.Sheets["S"].Total = 50
 	event.Sheets["A"].Total = 150
 	event.Sheets["B"].Total = 300
@@ -319,6 +319,11 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 	event.Sheets["A"].Remains = 150
 	event.Sheets["B"].Remains = 300
 	event.Sheets["C"].Remains = 500
+
+	event.Sheets["S"].Price = 5000 + event.Price
+	event.Sheets["A"].Price = 3000 + event.Price
+	event.Sheets["B"].Price = 1000 + event.Price
+	event.Sheets["C"].Price = 0 + event.Price
 
 	for rows.Next() {
 		var sheet Sheet
