@@ -307,17 +307,17 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		"C": &Sheets{},
 	}
 
-	event.Remains = 1000
-	event.Total = 0
+	// event.Remains = 1000
+	// event.Total = 0
 	
-	event.Sheets["S"].Remains = 50
-	event.Sheets["S"].Total = 0
-	event.Sheets["A"].Remains = 150
-	event.Sheets["A"].Total = 0
-	event.Sheets["B"].Remains = 300
-	event.Sheets["B"].Total = 0
-	event.Sheets["C"].Remains = 500
-	event.Sheets["C"].Total = 0
+	// event.Sheets["S"].Remains = 50
+	// event.Sheets["S"].Total = 0
+	// event.Sheets["A"].Remains = 150
+	// event.Sheets["A"].Total = 0
+	// event.Sheets["B"].Remains = 300
+	// event.Sheets["B"].Total = 0
+	// event.Sheets["C"].Remains = 500
+	// event.Sheets["C"].Total = 0
 
 	for rows.Next() {
 		var sheet Sheet
@@ -328,10 +328,8 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 
 		// sheetsのあーだこーだ
 		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
-		event.Sheets[sheet.Rank].Remains--
-		event.Sheets[sheet.Rank].Total++
-		event.Remains--
 		event.Total++
+		event.Sheets[sheet.Rank].Total++
 		
 		// sheetのあーだこーだ
 		sheet.Mine = reservation.UserID == loginUserID
@@ -342,6 +340,11 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
 	}
 
+	event.Sheets["S"].Remains = 50 - event.Sheets["S"].Total
+	event.Sheets["A"].Remains = 150 - event.Sheets["A"].Total
+	event.Sheets["B"].Remains = 300 - event.Sheets["B"].Total
+	event.Sheets["C"].Remains = 500 - event.Sheets["C"].Total
+	event.Remains = 1000 - event.Total
 	return &event, nil
 
 }
