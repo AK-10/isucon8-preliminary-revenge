@@ -286,7 +286,7 @@ func getEvents(all bool) ([]*Event, error) {
 	return events, nil
 }
 
-
+// 予約されていない席の情報が足りない
 func getEvent(eventID, loginUserID int64) (*Event, error) {
 
 	var event Event
@@ -294,7 +294,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		return nil, err
 	}
 
-	rows, err := db.Query("select s.*, r.user_id, r.reserved_at from sheets s inner join reservations r on r.event_id = ? and r.sheet_id = s.id and r.canceled_at is null", event.ID)
+	rows, err := db.Query("select s.*, r.user_id, r.reserved_at from sheets s left outer join reservations r on r.event_id = ? and r.sheet_id = s.id and r.canceled_at is null asc s.id", event.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -334,14 +334,14 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 
 		// sheetsのあーだこーだ
 		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
-		event.Sheets[sheet.Rank].Remains--
-		event.Remains--
+		if reservation.ReservedAt != nil {
+			event.Sheets[sheet.Rank].Remains--
+			event.Remains--
+			sheet.Mine = reservation.UserID == loginUserID
+			sheet.Reserved = true
+			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
+		}
 		
-		// sheetのあーだこーだ
-		sheet.Mine = reservation.UserID == loginUserID
-		sheet.Reserved = true
-		sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
-
 		// sheets << sheet
 		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
 	}
