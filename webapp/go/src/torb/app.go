@@ -307,8 +307,8 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		"C": &Sheets{},
 	}
 
-	event.Total = 0
 	event.Remains = 1000
+	event.Total = 0
 	
 	event.Sheets["S"].Remains = 50
 	event.Sheets["S"].Total = 0
