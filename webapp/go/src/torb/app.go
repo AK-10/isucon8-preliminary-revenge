@@ -294,7 +294,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		return nil, err
 	}
 
-	rows, err := db.Query("select s.*, r.user_id, r.reserved_at from sheets s inner join reservations r on r.event_id = ? and r.sheet_id = s.id and r.canceled_at is null and r.reserved_at is not null", event.ID)
+	rows, err := db.Query("select s.*, r.user_id, r.reserved_at from sheets s inner join reservations r on r.event_id = ? and r.sheet_id = s.id and r.canceled_at is null", event.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -330,8 +330,8 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
 		event.Sheets[sheet.Rank].Remains--
 		event.Sheets[sheet.Rank].Total++
-		event.Remains++
-		event.Total--
+		event.Remains--
+		event.Total++
 		
 		// sheetのあーだこーだ
 		sheet.Mine = reservation.UserID == loginUserID
