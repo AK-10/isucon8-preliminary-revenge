@@ -294,7 +294,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		return nil, err
 	}
 
-	rows, err := db.Query("select s.*, r.user_id, r.reserved_at from sheets s left outer join reservations r on r.event_id = ? and r.sheet_id = s.id and r.canceled_at is null asc s.id", event.ID)
+	rows, err := db.Query("select s.*, r.user_id, r.reserved_at from sheets s left outer join reservations r on r.event_id = ? and r.sheet_id = s.id and r.canceled_at is null", event.ID)
 	if err != nil {
 		return nil, err
 	}
