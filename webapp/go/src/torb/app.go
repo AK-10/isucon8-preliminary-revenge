@@ -294,7 +294,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		return nil, err
 	}
 
-	rows, err := db.Query("select s.*, r.user_id, r.reserved_at from sheets s left outer join reservations r on r.event_id = ? and r.sheet_id = s.id and r.canceled_at is null", event.ID)
+	rows, err := db.Query("select s.*, IFNULL(r.user_id, -1) from sheets s left outer join reservations r on r.event_id = ? and r.sheet_id = s.id and r.canceled_at is null", event.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -328,29 +328,24 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 	for rows.Next() {
 		var sheet Sheet
 		var reservation Reservation
-		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price, &reservation.UserID, &reservation.ReservedAt); err != nil {
+		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price, &reservation.UserID); err != nil {
 			return nil, err
 		}
 
 		// sheetsのあーだこーだ
 		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
-		if reservation.ReservedAt != nil {
+		if reservation.UserID != -1 {
 			event.Sheets[sheet.Rank].Remains--
 			event.Remains--
 			sheet.Mine = reservation.UserID == loginUserID
 			sheet.Reserved = true
 			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
-		} else {
-			sheet.Mine = false
-			sheet.Reserved = false
 		}
 		
 		// sheets << sheet
 		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
 	}
-
 	return &event, nil
-
 }
 
 // func getEvent(eventID, loginUserID int64) (*Event, error) {
