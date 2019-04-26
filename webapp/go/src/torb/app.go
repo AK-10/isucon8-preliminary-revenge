@@ -284,14 +284,19 @@ func getEvents(all bool) ([]*Event, error) {
 		event.Sheets["B"].Total = 300
 		event.Sheets["C"].Total = 500
 
-		if err := db.QueryRow("select count(s.rank = 'S' or null), count(s.rank = 'A' or null), count(s.rank = 'B' or null), count(s.rank = 'C' or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&event.Sheets["S"].Remains, &event.Sheets["A"].Remains, &event.Sheets["B"].Remains, &event.Sheets["C"].Remains); err != nil {
+		var sSum int64
+		var aSum int64
+		var bSum int64
+		var cSum int64
+		 
+		if err := db.QueryRow("select count(s.rank = 'S' or null), count(s.rank = 'A' or null), count(s.rank = 'B' or null), count(s.rank = 'C' or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&sSum, &aSum, &bSum, &cSum); err != nil {
 			return nil, err
 		}
 
-		event.Sheets["S"].Remains = 50 - event.Sheets["S"].Remains
-		event.Sheets["A"].Remains = 150 - event.Sheets["A"].Remains
-		event.Sheets["B"].Remains = 300 - event.Sheets["B"].Remains
-		event.Sheets["C"].Remains = 500 - event.Sheets["C"].Remains
+		event.Sheets["S"].Remains = 50 - int(sSum)
+		event.Sheets["A"].Remains = 150 - int(aSum)
+		event.Sheets["B"].Remains = 300 - int(bSum)
+		event.Sheets["C"].Remains = 500 - int(cSum)
 
 		events = append(events, &event)
 	}
