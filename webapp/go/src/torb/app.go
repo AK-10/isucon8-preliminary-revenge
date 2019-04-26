@@ -272,7 +272,6 @@ func getEvents(all bool) ([]*Event, error) {
 		if !all && !event.PublicFg {
 			continue
 		}
-		var event Event
 		event.Sheets["S"].Price = 5000 + event.Price
 		event.Sheets["A"].Price = 3000 + event.Price
 		event.Sheets["B"].Price = 1000 + event.Price
@@ -297,7 +296,7 @@ func getEvents(all bool) ([]*Event, error) {
 		event.Sheets["A"].Remains = 150 - event.Sheets["A"].Remains
 		event.Sheets["B"].Remains = 300 - event.Sheets["B"].Remains
 		event.Sheets["C"].Remains = 500 - event.Sheets["C"].Remains
-		
+
 		events = append(events, &event)
 	}
 
