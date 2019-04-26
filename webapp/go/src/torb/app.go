@@ -285,7 +285,7 @@ func getEvents(all bool) ([]*Event, error) {
 				return nil, err
 			}
 
-			if err := db.QueryRow("select count(s.rank = "S" or null), count(s.rank = "A" or null), count(s.rank = "B" or null), count(s.rank = "C" or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&event.Sheets["S"].Remains, &event.Sheets["A"].Remains, &event.Sheets["B"].Remains, &event.Sheets["C"].Remains); err != nil {
+			if err := db.QueryRow("select count(s.rank = 'S' or null), count(s.rank = 'A' or null), count(s.rank = 'B' or null), count(s.rank = 'C' or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&event.Sheets["S"].Remains, &event.Sheets["A"].Remains, &event.Sheets["B"].Remains, &event.Sheets["C"].Remains); err != nil {
 				return nil, err
 			}
 
@@ -302,7 +302,7 @@ func getEvents(all bool) ([]*Event, error) {
 			return nil, err
 		}
 		defer rows.Close()
-		
+
 		for rows.Next() {
 				var event Event
 		event.Sheets["S"].Price = 5000 + event.Price
@@ -321,7 +321,7 @@ func getEvents(all bool) ([]*Event, error) {
 			return nil, err
 		}
 
-		if err := db.QueryRow("select count(s.rank = "S" or null), count(s.rank = "A" or null), count(s.rank = "B" or null), count(s.rank = "C" or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&event.Sheets["S"].Remains, &event.Sheets["A"].Remains, &event.Sheets["B"].Remains, &event.Sheets["C"].Remains); err != nil {
+		if err := db.QueryRow("select count(s.rank = 'S' or null), count(s.rank = 'A' or null), count(s.rank = 'B' or null), count(s.rank = 'C' or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&event.Sheets["S"].Remains, &event.Sheets["A"].Remains, &event.Sheets["B"].Remains, &event.Sheets["C"].Remains); err != nil {
 			return nil, err
 		}
 
