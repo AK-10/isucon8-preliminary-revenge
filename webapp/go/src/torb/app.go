@@ -294,7 +294,7 @@ func getEvents(all bool) ([]*Event, error) {
 			event.Sheets["B"].Remains = 300 - event.Sheets["B"].Remains
 			event.Sheets["C"].Remains = 500 - event.Sheets["C"].Remains
 
-			events.append(events, event)
+			events = append(events, event)
 		}
 	} else {
 		rows, err := tx.Query("SELECT * FROM events where public_fg = 1 ORDER BY id ASC")
@@ -330,7 +330,7 @@ func getEvents(all bool) ([]*Event, error) {
 			event.Sheets["B"].Remains = 300 - event.Sheets["B"].Remains
 			event.Sheets["C"].Remains = 500 - event.Sheets["C"].Remains
 
-			events.append(events, event)
+			events = append(events, event)
 		}
 	}	
 
