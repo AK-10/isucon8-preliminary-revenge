@@ -284,10 +284,6 @@ func getEvents(all bool) ([]*Event, error) {
 		event.Sheets["B"].Total = 300
 		event.Sheets["C"].Total = 500
 
-		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
-			return nil, err
-		}
-
 		if err := db.QueryRow("select count(s.rank = 'S' or null), count(s.rank = 'A' or null), count(s.rank = 'B' or null), count(s.rank = 'C' or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&event.Sheets["S"].Remains, &event.Sheets["A"].Remains, &event.Sheets["B"].Remains, &event.Sheets["C"].Remains); err != nil {
 			return nil, err
 		}
