@@ -249,44 +249,111 @@ func getLoginAdministrator(c echo.Context) (*Administrator, error) {
 	return &administrator, err
 }
 
+// allの時,全部 !allの時 publicFg = trueのみ
+// event + sheet
+// event.*, 1000, 1000 - remains, price
 func getEvents(all bool) ([]*Event, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Commit()
-
-	rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var events []*Event
-	for rows.Next() {
-		var event Event
-		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
-			return nil, err
-		}
-		if !all && !event.PublicFg {
-			continue
-		}
-		events = append(events, &event)
-	}
-	for i, v := range events {
-		event, err := getEvent(v.ID, -1)
+	if all {
+		rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
 		if err != nil {
 			return nil, err
 		}
-		for k := range event.Sheets {
-			event.Sheets[k].Detail = nil
+		defer rows.Close()
+
+		var events []*Event
+		for rows.Next() {
+			var event Event
+			if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+				return nil, err
+			}
+			events = append(events, &event)
 		}
-		events[i] = event
+		for i, v := range events {
+			event, err := getEvent(v.ID, -1)
+			if err != nil {
+				return nil, err
+			}
+			for k := range event.Sheets {
+				event.Sheets[k].Detail = nil
+			}
+			events[i] = event
+		}
+		return events, nil
+
+	} else {
+		rows, err := tx.Query("SELECT * FROM events where public_fg = 1 ORDER BY id ASC")
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+
+		var events []*Event
+		for rows.Next() {
+			var event Event
+			if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+				return nil, err
+			}
+			events = append(events, &event)
+		}
+		for i, v := range events {
+			event, err := getEvent(v.ID, -1)
+			if err != nil {
+				return nil, err
+			}
+			for k := range event.Sheets {
+				event.Sheets[k].Detail = nil
+			}
+			events[i] = event
+		}
+		return events, nil
 	}
-	return events, nil
+
+
 }
 
-// 予約されていない席の情報が足りない
+// func getEvents(all bool) ([]*Event, error) {
+// 	tx, err := db.Begin()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer tx.Commit()
+
+// 	rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
+
+// 	var events []*Event
+// 	for rows.Next() {
+// 		var event Event
+// 		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+// 			return nil, err
+// 		}
+// 		if !all && !event.PublicFg {
+// 			continue
+// 		}
+// 		events = append(events, &event)
+// 	}
+// 	for i, v := range events {
+// 		event, err := getEvent(v.ID, -1)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		for k := range event.Sheets {
+// 			event.Sheets[k].Detail = nil
+// 		}
+// 		events[i] = event
+// 	}
+// 	return events, nil
+// }
+
+
 func getEvent(eventID, loginUserID int64) (*Event, error) {
 
 	var event Event
@@ -294,7 +361,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		return nil, err
 	}
 
-	rows, err := db.Query("select s.*, IFNULL(r.user_id, -1), r.reserved_at from sheets s left outer join reservations r on r.event_id = ? and r.sheet_id = s.id and r.canceled_at is null", event.ID)
+	rows, err := db.Query("select s.*, IFNULL(r.user_id, -1), r.reserved_at from sheets s left outer join reservations r on r.event_id = ? where r.sheet_id = s.id and r.canceled_at is null", event.ID)
 	if err != nil {
 		return nil, err
 	}
