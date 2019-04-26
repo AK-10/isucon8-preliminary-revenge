@@ -328,7 +328,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 	for rows.Next() {
 		var sheet Sheet
 		var reservation Reservation
-		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price, &reservation.UserID); err != nil {
+		if err = rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price, &reservation.UserID); err != nil {
 			return nil, err
 		}
 
