@@ -107,6 +107,7 @@ type Event struct {
 	Sheets  map[string]*Sheets `json:"sheets,omitempty"`
 }
 
+// S, A, B, Cランクがセットされる
 type Sheets struct {
 	Total   int      `json:"total"`
 	Remains int      `json:"remains"`
@@ -249,15 +250,16 @@ func getLoginAdministrator(c echo.Context) (*Administrator, error) {
 	return &administrator, err
 }
 
-// allの時,全部 !allの時 publicFg = trueのみ
-// event + sheet
-// event.*, 1000, 1000 - remains, price
+
 func getEvents(all bool) ([]*Event, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Commit()
+	
+	var events []*Event 
+	
 	if all {
 		rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
 		if err != nil {
@@ -265,55 +267,73 @@ func getEvents(all bool) ([]*Event, error) {
 		}
 		defer rows.Close()
 
-		var events []*Event
 		for rows.Next() {
 			var event Event
+			event.Sheets["S"].Price = 5000 + event.Price
+			event.Sheets["A"].Price = 3000 + event.Price
+			event.Sheets["B"].Price = 1000 + event.Price
+			event.Sheets["C"].Price = 0 + event.Price
+		
+			event.Total = 1000
+		
+			event.Sheets["S"].Total = 50
+			event.Sheets["A"].Total = 150
+			event.Sheets["B"].Total = 300
+			event.Sheets["C"].Total = 500
+
 			if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
 				return nil, err
 			}
-			events = append(events, &event)
-		}
-		for i, v := range events {
-			event, err := getEvent(v.ID, -1)
-			if err != nil {
+
+			if err := db.QueryRow("select count(s.rank = "S" or null), count(s.rank = "A" or null), count(s.rank = "B" or null), count(s.rank = "C" or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&event.Sheets["S"].Remains, &event.Sheets["A"].Remains, &event.Sheets["B"].Remains, &event.Sheets["C"].Remains); err != nil {
 				return nil, err
 			}
-			for k := range event.Sheets {
-				event.Sheets[k].Detail = nil
-			}
-			events[i] = event
-		}
-		return events, nil
 
+			event.Sheets["S"].Remains = 50 - event.Sheets["S"].Remains
+			event.Sheets["A"].Remains = 150 - event.Sheets["A"].Remains
+			event.Sheets["B"].Remains = 300 - event.Sheets["B"].Remains
+			event.Sheets["C"].Remains = 500 - event.Sheets["C"].Remains
+
+			events.append(events, event)
+		}
 	} else {
 		rows, err := tx.Query("SELECT * FROM events where public_fg = 1 ORDER BY id ASC")
 		if err != nil {
 			return nil, err
 		}
 		defer rows.Close()
-
-		var events []*Event
+		
 		for rows.Next() {
-			var event Event
-			if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
-				return nil, err
-			}
-			events = append(events, &event)
-		}
-		for i, v := range events {
-			event, err := getEvent(v.ID, -1)
-			if err != nil {
-				return nil, err
-			}
-			for k := range event.Sheets {
-				event.Sheets[k].Detail = nil
-			}
-			events[i] = event
-		}
-		return events, nil
-	}
+				var event Event
+		event.Sheets["S"].Price = 5000 + event.Price
+		event.Sheets["A"].Price = 3000 + event.Price
+		event.Sheets["B"].Price = 1000 + event.Price
+		event.Sheets["C"].Price = 0 + event.Price
+	
+		event.Total = 1000
+	
+		event.Sheets["S"].Total = 50
+		event.Sheets["A"].Total = 150
+		event.Sheets["B"].Total = 300
+		event.Sheets["C"].Total = 500
 
+		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+			return nil, err
+		}
 
+		if err := db.QueryRow("select count(s.rank = "S" or null), count(s.rank = "A" or null), count(s.rank = "B" or null), count(s.rank = "C" or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&event.Sheets["S"].Remains, &event.Sheets["A"].Remains, &event.Sheets["B"].Remains, &event.Sheets["C"].Remains); err != nil {
+			return nil, err
+		}
+
+		event.Sheets["S"].Remains = 50 - event.Sheets["S"].Remains
+		event.Sheets["A"].Remains = 150 - event.Sheets["A"].Remains
+		event.Sheets["B"].Remains = 300 - event.Sheets["B"].Remains
+		event.Sheets["C"].Remains = 500 - event.Sheets["C"].Remains
+
+		events.append(events, event)	
+	}	
+
+	return events, nil
 }
 
 // func getEvents(all bool) ([]*Event, error) {
