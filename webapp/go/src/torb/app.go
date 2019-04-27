@@ -472,7 +472,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 	event.impurityFieldInit()
 	for i := 0; i < 1000; i++ {
 		sheet := getSheet(int64(i+1))
-		event.Sheets[sheet.Rank].Detail[sheet.Num - 1]  = &sheet
+		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
 	}
 
 	rows, err := db.Query("select r.sheet_id, r.user_id, r.reserved_at from reservations r where event.id = ? and canceled_at is null", event.ID)
@@ -486,6 +486,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 			return nil, err
 		}
 		sheet := getSheet(reservation.SheetID)
+		sheet.Mine = reservation.UserID == loginUserID
 		sheet.Reserved = true
 		sheet.ReservedAt = reservation.ReservedAt
 		sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
@@ -895,7 +896,7 @@ e.GET("/api/users/:id", func(c echo.Context) error {
 		if err != nil {
 			return err
 		}
-		
+
 		event, err := getEvent(eventID, user.ID)
 		if err != nil {
 			if err == sql.ErrNoRows {
