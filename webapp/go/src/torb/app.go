@@ -427,6 +427,16 @@ func getEvents(all bool) ([]*Event, error) {
 	return events, nil
 }
 
+func (e *Event) impurityFieldInit() {
+	e.Sheets = map[string]*Sheets{
+		"S": &Sheets{Remains: 50, Total: 50, Price: 5000 + e.Price},
+		"A": &Sheets{Remains: 150, Total: 150, Price: 3000 + e.Price},
+		"B": &Sheets{Remains: 300, Total: 300, Price: 1000 + e.Price},
+		"C": &Sheets{Remains: 500, Total: 500, Price: e.Price},
+	}
+	e.Total = 1000
+	e.Remains = 1000
+}
 
 func getEvent(eventID, loginUserID int64) (*Event, error) {
 
@@ -441,31 +451,8 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 	}
 	defer rows.Close()
 	
-	event.Sheets = map[string]*Sheets{
-		"S": &Sheets{},
-		"A": &Sheets{},
-		"B": &Sheets{},
-		"C": &Sheets{},
-	}
-
-	event.Total = 1000
-	event.Remains = 1000
-
-	event.Sheets["S"].Total = 50
-	event.Sheets["A"].Total = 150
-	event.Sheets["B"].Total = 300
-	event.Sheets["C"].Total = 500
-
-	event.Sheets["S"].Remains = 50
-	event.Sheets["A"].Remains = 150
-	event.Sheets["B"].Remains = 300
-	event.Sheets["C"].Remains = 500
-
-	event.Sheets["S"].Price = 5000 + event.Price
-	event.Sheets["A"].Price = 3000 + event.Price
-	event.Sheets["B"].Price = 1000 + event.Price
-	event.Sheets["C"].Price = 0 + event.Price
-
+	event.impurityFieldInit()
+	
 	for rows.Next() {
 		var sheet Sheet
 		var reservation Reservation
