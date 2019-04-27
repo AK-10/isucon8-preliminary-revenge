@@ -250,59 +250,59 @@ func getLoginAdministrator(c echo.Context) (*Administrator, error) {
 	return &administrator, err
 }
 
-func getEvents(all bool) ([]*Event, error) {
-	tx, err := db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Commit()
+// func getEvents(all bool) ([]*Event, error) {
+// 	tx, err := db.Begin()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer tx.Commit()
 
-	rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+// 	rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
 
-	var events []*Event
-	for rows.Next() {
-		var event Event
-		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
-			return nil, err
-		}
-		if !all && !event.PublicFg {
-			continue
-		}
-		event.Sheets["S"].Price = 5000 + event.Price
-		event.Sheets["A"].Price = 3000 + event.Price
-		event.Sheets["B"].Price = 1000 + event.Price
-		event.Sheets["C"].Price = 0 + event.Price
+// 	var events []*Event
+// 	for rows.Next() {
+// 		var event Event
+// 		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+// 			return nil, err
+// 		}
+// 		if !all && !event.PublicFg {
+// 			continue
+// 		}
+// 		event.Sheets["S"].Price = 5000 + event.Price
+// 		event.Sheets["A"].Price = 3000 + event.Price
+// 		event.Sheets["B"].Price = 1000 + event.Price
+// 		event.Sheets["C"].Price = 0 + event.Price
 	
-		event.Total = 1000
+// 		event.Total = 1000
 	
-		event.Sheets["S"].Total = 50
-		event.Sheets["A"].Total = 150
-		event.Sheets["B"].Total = 300
-		event.Sheets["C"].Total = 500
+// 		event.Sheets["S"].Total = 50
+// 		event.Sheets["A"].Total = 150
+// 		event.Sheets["B"].Total = 300
+// 		event.Sheets["C"].Total = 500
 
-		var sSum int
-		var aSum int
-		var bSum int
-		var cSum int
+// 		var sSum int
+// 		var aSum int
+// 		var bSum int
+// 		var cSum int
 		 
-		if err := db.QueryRow("select count(s.rank = 'S' or null), count(s.rank = 'A' or null), count(s.rank = 'B' or null), count(s.rank = 'C' or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&sSum, &aSum, &bSum, &cSum); err != nil {
-			return nil, err
-		}
+// 		if err := db.QueryRow("select count(s.rank = 'S' or null), count(s.rank = 'A' or null), count(s.rank = 'B' or null), count(s.rank = 'C' or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&sSum, &aSum, &bSum, &cSum); err != nil {
+// 			return nil, err
+// 		}
 
-		event.Sheets["S"].Remains = 50 - sSum
-		event.Sheets["A"].Remains = 150 - aSum
-		event.Sheets["B"].Remains = 300 - bSum
-		event.Sheets["C"].Remains = 500 - cSum
+// 		event.Sheets["S"].Remains = 50 - sSum
+// 		event.Sheets["A"].Remains = 150 - aSum
+// 		event.Sheets["B"].Remains = 300 - bSum
+// 		event.Sheets["C"].Remains = 500 - cSum
 
-		events = append(events, &event)
-	}
+// 		events = append(events, &event)
+// 	}
 
-	return events, nil
-}
+// 	return events, nil
+// }
 
 // func getEvents(all bool) ([]*Event, error) {
 // 	tx, err := db.Begin()
@@ -390,42 +390,42 @@ func getEvents(all bool) ([]*Event, error) {
 // 	return events, nil
 // }
 
-// func getEvents(all bool) ([]*Event, error) {
-// 	tx, err := db.Begin()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer tx.Commit()
+func getEvents(all bool) ([]*Event, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Commit()
 
-// 	rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
+	rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-// 	var events []*Event
-// 	for rows.Next() {
-// 		var event Event
-// 		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
-// 			return nil, err
-// 		}
-// 		if !all && !event.PublicFg {
-// 			continue
-// 		}
-// 		events = append(events, &event)
-// 	}
-// 	for i, v := range events {
-// 		event, err := getEvent(v.ID, -1)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		for k := range event.Sheets {
-// 			event.Sheets[k].Detail = nil
-// 		}
-// 		events[i] = event
-// 	}
-// 	return events, nil
-// }
+	var events []*Event
+	for rows.Next() {
+		var event Event
+		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+			return nil, err
+		}
+		if !all && !event.PublicFg {
+			continue
+		}
+		events = append(events, &event)
+	}
+	for i, v := range events {
+		event, err := getEvent(v.ID, -1)
+		if err != nil {
+			return nil, err
+		}
+		for k := range event.Sheets {
+			event.Sheets[k].Detail = nil
+		}
+		events[i] = event
+	}
+	return events, nil
+}
 
 
 func getEvent(eventID, loginUserID int64) (*Event, error) {
