@@ -269,28 +269,18 @@ func getEvents(all bool) ([]*Event, error) {
 		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
 			return nil, err
 		}
+
 		if !all && !event.PublicFg {
 			continue
 		}
 
 		event.impurityFieldInit()
-
-		var sSum int
-		var aSum int
-		var bSum int
-		var cSum int
-		 
-		if err := db.QueryRow("select count(s.rank = 'S' or null), count(s.rank = 'A' or null), count(s.rank = 'B' or null), count(s.rank = 'C' or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&sSum, &aSum, &bSum, &cSum); err != nil {
+		eventX, err := setEventFieldWithoutDetail(&event)
+		if err != nil {
 			return nil, err
 		}
 
-		event.Sheets["S"].Remains = 50 - sSum
-		event.Sheets["A"].Remains = 150 - aSum
-		event.Sheets["B"].Remains = 300 - bSum
-		event.Sheets["C"].Remains = 500 - cSum
-		event.Remains = 1000 - (sSum + aSum + bSum + cSum)
-
-		events = append(events, &event)
+		events = append(events, eventX)
 	}
 
 	return events, nil
@@ -428,6 +418,26 @@ func (e *Event) impurityFieldInit() {
 	}
 	e.Total = 1000
 	e.Remains = 1000
+}
+
+func setEventFieldWithoutDetail(event *Event) (*Event, error) {
+	var sSum int
+	var aSum int
+	var bSum int
+	var cSum int
+		
+	if err := db.QueryRow("select count(s.rank = 'S' or null), count(s.rank = 'A' or null), count(s.rank = 'B' or null), count(s.rank = 'C' or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&sSum, &aSum, &bSum, &cSum); err != nil {
+		return nil, err
+	}
+
+	event.Sheets["S"].Remains = 50 - sSum
+	event.Sheets["A"].Remains = 150 - aSum
+	event.Sheets["B"].Remains = 300 - bSum
+	event.Sheets["C"].Remains = 500 - cSum
+	event.Remains = 1000 - (sSum + aSum + bSum + cSum)
+	
+	return event, nil
+
 }
 
 func getEvent(eventID, loginUserID int64) (*Event, error) {
