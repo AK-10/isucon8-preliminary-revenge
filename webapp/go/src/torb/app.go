@@ -451,7 +451,7 @@ func getSheet(sheetID int64) Sheet {
 		sheet.Rank = "A"
 		sheet.Price = 3000
 		sheet.Num = sheetID - 50
-	case sheetID >200 && sheetID <= 500:
+	case sheetID > 200 && sheetID <= 500:
 		sheet.Rank = "B"
 		sheet.Price = 1000
 		sheet.Num = sheetID - 200
@@ -472,7 +472,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 	event.impurityFieldInit()
 	for i := 0; i < 1000; i++ {
 		sheet := getSheet(int64(i+1))
-		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
+		event.Sheets[sheet.Rank].Detail[sheet.Num - 1]  = &sheet
 	}
 
 	rows, err := db.Query("select r.sheet_id, r.user_id, r.reserved_at from reservations r where event.id = ? and canceled_at is null", event.ID)
@@ -895,7 +895,7 @@ e.GET("/api/users/:id", func(c echo.Context) error {
 		if err != nil {
 			return err
 		}
-
+		
 		event, err := getEvent(eventID, user.ID)
 		if err != nil {
 			if err == sql.ErrNoRows {
