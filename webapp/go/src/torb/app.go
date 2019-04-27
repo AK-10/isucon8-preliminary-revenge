@@ -437,46 +437,105 @@ func setEventFieldWithoutDetail(event *Event) (*Event, error) {
 	event.Remains = 1000 - (sSum + aSum + bSum + cSum)
 	
 	return event, nil
-
 }
 
-func getEvent(eventID, loginUserID int64) (*Event, error) {
+func getSheet(sheetID int64) Sheet {
+	var sheet Sheet
+	sheet.ID = sheetID
+	switch {
+	case sheetID <= 50:
+		sheet.Rank = "S"
+		sheet.Price = 5000
+		sheet.Num = sheetID
+	case sheetID > 50 && sheetID <= 200:
+		sheet.Rank = "A"
+		sheet.Price = 3000
+		sheet.Num = sheetID - 50
+	case sheetID >200 && sheetID <= 500:
+		sheet.Rank = "B"
+		sheet.Price = 1000
+		sheet.Num = sheetID - 200
+	default:
+		sheet.Rank = "C"
+		sheet.Price = 0
+		sheet.Num = sheetID - 500
+	}
+	return sheet
+}
 
+
+func getEvent(eventID, loginUserID int64) (*Event, error) {
 	var event Event
 	if err := db.QueryRow("SELECT * FROM events WHERE id = ?", eventID).Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
 		return nil, err
 	}
+	event.impurityFieldInit()
+	for i := 0; i < 1000; i++ {
+		sheet := getSheet(int64(i+1))
+		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
+	}
 
-	rows, err := db.Query("select s.*, IFNULL(r.user_id, -1), r.reserved_at from sheets s left outer join reservations r on r.event_id = ? and r.sheet_id = s.id and r.canceled_at is null", event.ID)
+	rows, err := db.Query("select r.sheet_id, r.user_id, r.reserved_at from reservations r where event.id = ? and canceled_at is null", event.ID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	
-	event.impurityFieldInit()
 
 	for rows.Next() {
-		var sheet Sheet
 		var reservation Reservation
-		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price, &reservation.UserID, &reservation.ReservedAt); err != nil {
+		if err := rows.Scan(&reservation.SheetID, &reservation.UserID, &reservation.ReservedAt); err != nil {
 			return nil, err
 		}
-
-		// sheetsのあーだこーだ
-		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
-		if reservation.UserID != -1 {
-			event.Sheets[sheet.Rank].Remains--
-			event.Remains--
-			sheet.Mine = reservation.UserID == loginUserID
-			sheet.Reserved = true
-			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
-		}
-		
-		// sheets << sheet
-		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
+		sheet := getSheet(reservation.SheetID)
+		sheet.Reserved = true
+		sheet.ReservedAt = reservation.ReservedAt
+		sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
+		event.Remains--
+		event.Sheets[sheet.Rank].Remains--
+		event.Sheets[sheet.Rank].Detail[sheet.Num - 1] = &sheet
 	}
-	return &event, nil
+
+	return &event, err
 }
+
+
+// func getEvent(eventID, loginUserID int64) (*Event, error) {
+
+// 	var event Event
+// 	if err := db.QueryRow("SELECT * FROM events WHERE id = ?", eventID).Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+// 		return nil, err
+// 	}
+
+// 	rows, err := db.Query("select s.*, IFNULL(r.user_id, -1), r.reserved_at from sheets s left outer join reservations r on r.event_id = ? and r.sheet_id = s.id and r.canceled_at is null", event.ID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	defer rows.Close()
+	
+// 	event.impurityFieldInit() 
+
+// 	for rows.Next() {
+// 		var sheet Sheet
+// 		var reservation Reservation
+// 		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price, &reservation.UserID, &reservation.ReservedAt); err != nil {
+// 			return nil, err
+// 		}
+
+// 		// sheetsのあーだこーだ
+// 		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
+// 		if reservation.UserID != -1 {
+// 			event.Sheets[sheet.Rank].Remains--
+// 			event.Remains--
+// 			sheet.Mine = reservation.UserID == loginUserID
+// 			sheet.Reserved = true
+// 			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
+// 		}
+		
+// 		// sheets << sheet
+// 		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
+// 	}
+// 	return &event, nil
+// }
 
 // func getEvent(eventID, loginUserID int64) (*Event, error) {
 // 	var event Event
