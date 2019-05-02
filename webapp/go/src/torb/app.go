@@ -1,69 +1,4 @@
-
 package main
-
-// +----------------+
-// | Tables_in_torb |
-// +----------------+
-// | administrators |
-// | events         |
-// | reservations   |
-// | sheets         |
-// | users          |
-// +----------------+
-
-// mysql> show columns from sheets;
-// +-------+------------------+------+-----+---------+----------------+
-// | Field | Type             | Null | Key | Default | Extra          |
-// +-------+------------------+------+-----+---------+----------------+
-// | id    | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
-// | rank  | varchar(128)     | NO   | MUL | NULL    |                |
-// | num   | int(10) unsigned | NO   |     | NULL    |                |
-// | price | int(10) unsigned | NO   |     | NULL    |                |
-// +-------+------------------+------+-----+---------+----------------+
-
-// mysql> show columns from users;
-// +------------+------------------+------+-----+---------+----------------+
-// | Field      | Type             | Null | Key | Default | Extra          |
-// +------------+------------------+------+-----+---------+----------------+
-// | id         | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
-// | nickname   | varchar(128)     | NO   |     | NULL    |                |
-// | login_name | varchar(128)     | NO   | UNI | NULL    |                |
-// | pass_hash  | varchar(128)     | NO   |     | NULL    |                |
-// +------------+------------------+------+-----+---------+----------------+
-
-
-// mysql> show columns from reservations;
-// +-------------+------------------+------+-----+---------+----------------+
-// | Field       | Type             | Null | Key | Default | Extra          |
-// +-------------+------------------+------+-----+---------+----------------+
-// | id          | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
-// | event_id    | int(10) unsigned | NO   | MUL | NULL    |                |
-// | sheet_id    | int(10) unsigned | NO   |     | NULL    |                |
-// | user_id     | int(10) unsigned | NO   |     | NULL    |                |
-// | reserved_at | datetime(6)      | NO   |     | NULL    |                |
-// | canceled_at | datetime(6)      | YES  |     | NULL    |                |
-// +-------------+------------------+------+-----+---------+----------------+
-
-// mysql> show columns from administrators;
-// +------------+------------------+------+-----+---------+----------------+
-// | Field      | Type             | Null | Key | Default | Extra          |
-// +------------+------------------+------+-----+---------+----------------+
-// | id         | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
-// | nickname   | varchar(128)     | NO   |     | NULL    |                |
-// | login_name | varchar(128)     | NO   | UNI | NULL    |                |
-// | pass_hash  | varchar(128)     | NO   |     | NULL    |                |
-// +------------+------------------+------+-----+---------+----------------+
-
-// mysql> show columns from events;
-// +-----------+------------------+------+-----+---------+----------------+
-// | Field     | Type             | Null | Key | Default | Extra          |
-// +-----------+------------------+------+-----+---------+----------------+
-// | id        | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
-// | title     | varchar(128)     | NO   |     | NULL    |                |
-// | public_fg | tinyint(1)       | NO   |     | NULL    |                |
-// | closed_fg | tinyint(1)       | NO   |     | NULL    |                |
-// | price     | int(10) unsigned | NO   |     | NULL    |                |
-// +-----------+------------------+------+-----+---------+----------------+
 
 import (
 	"bytes"
@@ -107,7 +42,6 @@ type Event struct {
 	Sheets  map[string]*Sheets `json:"sheets,omitempty"`
 }
 
-// S, A, B, Cランクがセットされる
 type Sheets struct {
 	Total   int      `json:"total"`
 	Remains int      `json:"remains"`
@@ -269,320 +203,69 @@ func getEvents(all bool) ([]*Event, error) {
 		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
 			return nil, err
 		}
-
 		if !all && !event.PublicFg {
 			continue
 		}
-
-		event.impurityFieldInit()
-		eventX, err := setEventFieldWithoutDetail(&event)
+		events = append(events, &event)
+	}
+	for i, v := range events {
+		event, err := getEvent(v.ID, -1)
 		if err != nil {
 			return nil, err
 		}
-
-		events = append(events, eventX)
+		for k := range event.Sheets {
+			event.Sheets[k].Detail = nil
+		}
+		events[i] = event
 	}
-
 	return events, nil
 }
-
-// func getEvents(all bool) ([]*Event, error) {
-// 	tx, err := db.Begin()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer tx.Commit()
-	
-// 	var events []*Event 
-	
-// 	if all {
-// 		rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		defer rows.Close()
-
-// 		for rows.Next() {
-// 			var event Event
-// 			event.Sheets["S"].Price = 5000 + event.Price
-// 			event.Sheets["A"].Price = 3000 + event.Price
-// 			event.Sheets["B"].Price = 1000 + event.Price
-// 			event.Sheets["C"].Price = 0 + event.Price
-		
-// 			event.Total = 1000
-		
-// 			event.Sheets["S"].Total = 50
-// 			event.Sheets["A"].Total = 150
-// 			event.Sheets["B"].Total = 300
-// 			event.Sheets["C"].Total = 500
-
-// 			if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
-// 				return nil, err
-// 			}
-
-// 			if err := db.QueryRow("select count(s.rank = 'S' or null), count(s.rank = 'A' or null), count(s.rank = 'B' or null), count(s.rank = 'C' or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&event.Sheets["S"].Remains, &event.Sheets["A"].Remains, &event.Sheets["B"].Remains, &event.Sheets["C"].Remains); err != nil {
-// 				return nil, err
-// 			}
-
-// 			event.Sheets["S"].Remains = 50 - event.Sheets["S"].Remains
-// 			event.Sheets["A"].Remains = 150 - event.Sheets["A"].Remains
-// 			event.Sheets["B"].Remains = 300 - event.Sheets["B"].Remains
-// 			event.Sheets["C"].Remains = 500 - event.Sheets["C"].Remains
-
-// 			events = append(events, &event)
-// 		}
-// 	} else {
-// 		rows, err := tx.Query("SELECT * FROM events where public_fg = 1 ORDER BY id ASC")
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		defer rows.Close()
-
-// 		for rows.Next() {
-// 			var event Event
-// 			event.Sheets["S"].Price = 5000 + event.Price
-// 			event.Sheets["A"].Price = 3000 + event.Price
-// 			event.Sheets["B"].Price = 1000 + event.Price
-// 			event.Sheets["C"].Price = 0 + event.Price
-		
-// 			event.Total = 1000
-		
-// 			event.Sheets["S"].Total = 50
-// 			event.Sheets["A"].Total = 150
-// 			event.Sheets["B"].Total = 300
-// 			event.Sheets["C"].Total = 500
-
-// 			if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
-// 				return nil, err
-// 			}
-
-// 			if err := db.QueryRow("select count(s.rank = 'S' or null), count(s.rank = 'A' or null), count(s.rank = 'B' or null), count(s.rank = 'C' or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&event.Sheets["S"].Remains, &event.Sheets["A"].Remains, &event.Sheets["B"].Remains, &event.Sheets["C"].Remains); err != nil {
-// 				return nil, err
-// 			}
-
-// 			event.Sheets["S"].Remains = 50 - event.Sheets["S"].Remains
-// 			event.Sheets["A"].Remains = 150 - event.Sheets["A"].Remains
-// 			event.Sheets["B"].Remains = 300 - event.Sheets["B"].Remains
-// 			event.Sheets["C"].Remains = 500 - event.Sheets["C"].Remains
-
-// 			events = append(events, &event)
-// 		}
-// 	}	
-
-// 	return events, nil
-// }
-
-// func getEvents(all bool) ([]*Event, error) {
-// 	tx, err := db.Begin()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer tx.Commit()
-
-// 	rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
-
-// 	var events []*Event
-// 	for rows.Next() {
-// 		var event Event
-// 		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
-// 			return nil, err
-// 		}
-// 		if !all && !event.PublicFg {
-// 			continue
-// 		}
-// 		events = append(events, &event)
-// 	}
-// 	for i, v := range events {
-// 		event, err := getEvent(v.ID, -1)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		for k := range event.Sheets {
-// 			event.Sheets[k].Detail = nil
-// 		}
-// 		events[i] = event
-// 	}
-// 	return events, nil
-// }
-
-func (e *Event) impurityFieldInit() {
-	e.Sheets = map[string]*Sheets{
-		"S": &Sheets{Remains: 50, Total: 50, Price: 5000 + e.Price},
-		"A": &Sheets{Remains: 150, Total: 150, Price: 3000 + e.Price},
-		"B": &Sheets{Remains: 300, Total: 300, Price: 1000 + e.Price},
-		"C": &Sheets{Remains: 500, Total: 500, Price: e.Price},
-	}
-	e.Total = 1000
-	e.Remains = 1000
-}
-
-func setEventFieldWithoutDetail(event *Event) (*Event, error) {
-	var sSum int
-	var aSum int
-	var bSum int
-	var cSum int
-		
-	if err := db.QueryRow("select count(s.rank = 'S' or null), count(s.rank = 'A' or null), count(s.rank = 'B' or null), count(s.rank = 'C' or null) from reservations r inner join sheets s on r.sheet_id = s.id where r.event_id = ? and r.canceled_at is null", event.ID).Scan(&sSum, &aSum, &bSum, &cSum); err != nil {
-		return nil, err
-	}
-
-	event.Sheets["S"].Remains = 50 - sSum
-	event.Sheets["A"].Remains = 150 - aSum
-	event.Sheets["B"].Remains = 300 - bSum
-	event.Sheets["C"].Remains = 500 - cSum
-	event.Remains = 1000 - (sSum + aSum + bSum + cSum)
-	
-	return event, nil
-}
-
-func getSheet(sheetID int64) Sheet {
-	var sheet Sheet
-	sheet.ID = sheetID
-	switch {
-	case sheetID <= 50:
-		sheet.Rank = "S"
-		sheet.Price = 5000
-		sheet.Num = sheetID
-	case sheetID > 50 && sheetID <= 200:
-		sheet.Rank = "A"
-		sheet.Price = 3000
-		sheet.Num = sheetID - 50
-	case sheetID > 200 && sheetID <= 500:
-		sheet.Rank = "B"
-		sheet.Price = 1000
-		sheet.Num = sheetID - 200
-	default:
-		sheet.Rank = "C"
-		sheet.Price = 0
-		sheet.Num = sheetID - 500
-	}
-	return sheet
-}
-
 
 func getEvent(eventID, loginUserID int64) (*Event, error) {
 	var event Event
 	if err := db.QueryRow("SELECT * FROM events WHERE id = ?", eventID).Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
 		return nil, err
 	}
-	event.impurityFieldInit()
-	for i := 0; i < 1000; i++ {
-		sheet := getSheet(int64(i+1))
-		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
+	event.Sheets = map[string]*Sheets{
+		"S": &Sheets{},
+		"A": &Sheets{},
+		"B": &Sheets{},
+		"C": &Sheets{},
 	}
 
-	rows, err := db.Query("select r.sheet_id, r.user_id, r.reserved_at from reservations r where event.id = ? and canceled_at is null", event.ID)
+	rows, err := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
-		var reservation Reservation
-		if err := rows.Scan(&reservation.SheetID, &reservation.UserID, &reservation.ReservedAt); err != nil {
+		var sheet Sheet
+		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
 			return nil, err
 		}
-		sheet := getSheet(reservation.SheetID)
-		sheet.Mine = reservation.UserID == loginUserID
-		sheet.Reserved = true
-		sheet.ReservedAt = reservation.ReservedAt
-		sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
-		event.Remains--
-		event.Sheets[sheet.Rank].Remains--
-		event.Sheets[sheet.Rank].Detail[sheet.Num - 1] = &sheet
+		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
+		event.Total++
+		event.Sheets[sheet.Rank].Total++
+
+		var reservation Reservation
+		err := db.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id, sheet_id HAVING reserved_at = MIN(reserved_at)", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt)
+		if err == nil {
+			sheet.Mine = reservation.UserID == loginUserID
+			sheet.Reserved = true
+			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
+		} else if err == sql.ErrNoRows {
+			event.Remains++
+			event.Sheets[sheet.Rank].Remains++
+		} else {
+			return nil, err
+		}
+
+		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
 	}
 
-	return &event, err
+	return &event, nil
 }
-
-
-// func getEvent(eventID, loginUserID int64) (*Event, error) {
-
-// 	var event Event
-// 	if err := db.QueryRow("SELECT * FROM events WHERE id = ?", eventID).Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
-// 		return nil, err
-// 	}
-
-// 	rows, err := db.Query("select s.*, IFNULL(r.user_id, -1), r.reserved_at from sheets s left outer join reservations r on r.event_id = ? and r.sheet_id = s.id and r.canceled_at is null", event.ID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	defer rows.Close()
-	
-// 	event.impurityFieldInit() 
-
-// 	for rows.Next() {
-// 		var sheet Sheet
-// 		var reservation Reservation
-// 		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price, &reservation.UserID, &reservation.ReservedAt); err != nil {
-// 			return nil, err
-// 		}
-
-// 		// sheetsのあーだこーだ
-// 		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
-// 		if reservation.UserID != -1 {
-// 			event.Sheets[sheet.Rank].Remains--
-// 			event.Remains--
-// 			sheet.Mine = reservation.UserID == loginUserID
-// 			sheet.Reserved = true
-// 			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
-// 		}
-		
-// 		// sheets << sheet
-// 		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
-// 	}
-// 	return &event, nil
-// }
-
-// func getEvent(eventID, loginUserID int64) (*Event, error) {
-// 	var event Event
-// 	if err := db.QueryRow("SELECT * FROM events WHERE id = ?", eventID).Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
-// 		return nil, err
-// 	}
-// 	event.Sheets = map[string]*Sheets{
-// 		"S": &Sheets{},
-// 		"A": &Sheets{},
-// 		"B": &Sheets{},
-// 		"C": &Sheets{},
-// 	}
-
-// 	rows, err := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
-
-// 	for rows.Next() {
-// 		var sheet Sheet
-// 		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
-// 			return nil, err
-// 		}
-// 		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
-// 		event.Total++
-// 		event.Sheets[sheet.Rank].Total++
-
-// 		var reservation Reservation
-// 		err := db.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id, sheet_id HAVING reserved_at = MIN(reserved_at)", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt)
-// 		if err == nil {
-// 			sheet.Mine = reservation.UserID == loginUserID
-// 			sheet.Reserved = true
-// 			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
-// 		} else if err == sql.ErrNoRows {
-// 			event.Remains++
-// 			event.Sheets[sheet.Rank].Remains++
-// 		} else {
-// 			return nil, err
-// 		}
-
-// 		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
-// 	}
-
-// 	return &event, nil
-// }
 
 func sanitizeEvent(e *Event) *Event {
 	sanitized := *e
@@ -612,7 +295,7 @@ func fillinAdministrator(next echo.HandlerFunc) echo.HandlerFunc {
 
 func validateRank(rank string) bool {
 	var count int
-	db.QueryRow("SELECT COUNT(id) FROM sheets WHERE `rank` = ?", rank).Scan(&count)
+	db.QueryRow("SELECT COUNT(*) FROM sheets WHERE `rank` = ?", rank).Scan(&count)
 	return count > 0
 }
 
@@ -718,7 +401,7 @@ func main() {
 			"nickname": params.Nickname,
 		})
 	})
-e.GET("/api/users/:id", func(c echo.Context) error {
+	e.GET("/api/users/:id", func(c echo.Context) error {
 		var user User
 		if err := db.QueryRow("SELECT id, nickname FROM users WHERE id = ?", c.Param("id")).Scan(&user.ID, &user.Nickname); err != nil {
 			return err
@@ -807,7 +490,6 @@ e.GET("/api/users/:id", func(c echo.Context) error {
 			"recent_events":       recentEvents,
 		})
 	}, loginRequired)
-
 	e.POST("/api/actions/login", func(c echo.Context) error {
 		var params struct {
 			LoginName string `json:"login_name"`
@@ -838,14 +520,10 @@ e.GET("/api/users/:id", func(c echo.Context) error {
 		}
 		return c.JSON(200, user)
 	})
-
-
 	e.POST("/api/actions/logout", func(c echo.Context) error {
 		sessDeleteUserID(c)
 		return c.NoContent(204)
 	}, loginRequired)
-
-
 	e.GET("/api/events", func(c echo.Context) error {
 		events, err := getEvents(true)
 		if err != nil {
@@ -856,8 +534,6 @@ e.GET("/api/users/:id", func(c echo.Context) error {
 		}
 		return c.JSON(200, events)
 	})
-
-
 	e.GET("/api/events/:id", func(c echo.Context) error {
 		eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
@@ -880,8 +556,6 @@ e.GET("/api/users/:id", func(c echo.Context) error {
 		}
 		return c.JSON(200, sanitizeEvent(event))
 	})
-
-
 	e.POST("/api/events/:id/actions/reserve", func(c echo.Context) error {
 		eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
@@ -952,8 +626,6 @@ e.GET("/api/users/:id", func(c echo.Context) error {
 			"sheet_num":  sheet.Num,
 		})
 	}, loginRequired)
-
-
 	e.DELETE("/api/events/:id/sheets/:rank/:num/reservation", func(c echo.Context) error {
 		eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
