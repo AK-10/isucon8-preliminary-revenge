@@ -118,7 +118,7 @@ func getEvents(all bool) ([]*Event, error) {
 	}
 	defer tx.Commit()
 
-	rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
+	rows, err := tx.Query("SELECT id FROM events ORDER BY id ASC")
 	if err != nil {
 		return nil, err
 	}
@@ -126,25 +126,39 @@ func getEvents(all bool) ([]*Event, error) {
 
 	var events []*Event
 	for rows.Next() {
-		var event Event
-		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+		var event *Event
+		if err := rows.Scan(event.ID); err != nil {
 			return nil, err
 		}
-		if !all && !event.PublicFg {
-			continue
-		}
-		events = append(events, &event)
-	}
-	for i, v := range events {
-		event, err := getEvent(v.ID, -1)
+		event, err = getEventWithoutDetail(event.ID)
 		if err != nil {
 			return nil, err
 		}
-		for k := range event.Sheets {
-			event.Sheets[k].Detail = nil
-		}
-		events[i] = event
+		events = append(events, event)
 	}
+	return events, nil
+	// var events []*Event
+	// for rows.Next() {
+	// 	var event Event
+	// 	if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+	// 		return nil, err
+	// 	}
+	// 	if !all && !event.PublicFg {
+	// 		continue
+	// 	}
+	// 	events = append(events, &event)
+	// }
+
+	// for i, v := range events {
+	// 	event, err := getEvent(v.ID, -1)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	for k := range event.Sheets {
+	// 		event.Sheets[k].Detail = nil
+	// 	}
+	// 	events[i] = event
+	// }
 	return events, nil
 }
 
@@ -212,6 +226,39 @@ func (e *Event) setSheets() error {
 		e.Sheets[sheet.Rank].Detail = append(e.Sheets[sheet.Rank].Detail, sheet)
 	}
 	return err
+}
+
+func getEventWithoutDetail(eventID int64) (*Event, error) {
+	var event Event
+	if err := db.QueryRow("SELECT * FROM events WHERE id = ?", eventID).Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+		return nil, err
+	}
+	
+	event.setSheetsWithoutDetail()
+	
+
+	rows, err := db.Query("SELECT r.user_id, r.sheet_id, r.reserved_at FROM reservations r WHERE r.event_id = ? AND r.canceled_at IS NULL", event.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+
+		var reservation Reservation
+		err := rows.Scan(&reservation.UserID, &reservation.SheetID, &reservation.ReservedAt)
+
+		if err == nil {
+			rank, _ := getRankAndNum(reservation.SheetID)
+			event.Sheets[rank].Remains--
+			
+			event.Remains--
+		} else {
+			return nil, err
+		}
+	}
+
+	return &event, nil
 }
 
 func getEvent(eventID, loginUserID int64) (*Event, error) {
