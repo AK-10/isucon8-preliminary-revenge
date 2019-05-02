@@ -126,15 +126,15 @@ func getEvents(all bool) ([]*Event, error) {
 
 	var events []*Event
 	for rows.Next() {
-		var event *Event
-		if err := rows.Scan(event.ID); err != nil {
+		var eventID *int64
+		if err := rows.Scan(eventID); err != nil {
 			return nil, err
 		}
-		event, err = getEventWithoutDetail(event.ID)
+		eventX, err := getEventWithoutDetail(*eventID)
 		if err != nil {
 			return nil, err
 		}
-		events = append(events, event)
+		events = append(events, eventX)
 	}
 	return events, nil
 	// var events []*Event
@@ -235,7 +235,6 @@ func getEventWithoutDetail(eventID int64) (*Event, error) {
 	}
 	
 	event.setSheetsWithoutDetail()
-	
 
 	rows, err := db.Query("SELECT r.user_id, r.sheet_id, r.reserved_at FROM reservations r WHERE r.event_id = ? AND r.canceled_at IS NULL", event.ID)
 	if err != nil {
