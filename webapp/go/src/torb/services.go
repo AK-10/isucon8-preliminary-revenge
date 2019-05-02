@@ -192,27 +192,37 @@ func getRankAndNum(id int64) (string, int64) {
 	return rank, num
 }
 
+func (e *Event) setSheetsWithoutDetail() {
+	e.Total = 1000
+	e.Remains = 1000
+	e.Sheets = map[string]*Sheets{
+		"S": &Sheets{Total: 50, Price: e.Price + 5000, Remains: 50},
+		"A": &Sheets{Total: 150, Price: e.Price + 3000, Remains: 150},
+		"B": &Sheets{Total: 300, Price: e.Price + 1000, Remains: 300},
+		"C": &Sheets{Total: 500, Price: e.Price, Remains: 500},
+	}
+}
+
+func (e *Event) setSheets() error {
+	e.setSheetsWithoutDetail()
+	var err error
+	var sheet *Sheet
+	for i:= 0; i < 1000; i++ {
+		sheet, err = getSheet(int64(i+1))
+		e.Sheets[sheet.Rank].Detail = append(e.Sheets[sheet.Rank].Detail, sheet)
+	}
+	return err
+}
+
 func getEvent(eventID, loginUserID int64) (*Event, error) {
 	var event Event
 	if err := db.QueryRow("SELECT * FROM events WHERE id = ?", eventID).Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
 		return nil, err
 	}
 	
-	event.Total = 1000
-	event.Remains = 1000
-	event.Sheets = map[string]*Sheets{
-		"S": &Sheets{Total: 50, Price: event.Price + 5000, Remains: 50},
-		"A": &Sheets{Total: 150, Price: event.Price + 3000, Remains: 150},
-		"B": &Sheets{Total: 300, Price: event.Price + 1000, Remains: 300},
-		"C": &Sheets{Total: 500, Price: event.Price, Remains: 500},
-	}
-
-	for i:= 0; i < 1000; i++ {
-		sheet, err := getSheet(int64(i+1))
-		if err != nil {
-			return nil, err
-		}
-		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, sheet)
+	err := event.setSheets()
+	if err != nil {
+		return nil, err
 	}
 
 	rows, err := db.Query("SELECT r.user_id, r.sheet_id, r.reserved_at FROM reservations r WHERE r.event_id = ? AND r.canceled_at IS NULL", event.ID)
