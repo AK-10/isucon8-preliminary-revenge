@@ -126,11 +126,11 @@ func getEvents(all bool) ([]*Event, error) {
 
 	var events []*Event
 	for rows.Next() {
-		var eventID *int64
-		if err := rows.Scan(eventID); err != nil {
+		var eventID int64
+		if err := rows.Scan(&eventID); err != nil {
 			return nil, err
 		}
-		eventX, err := getEventWithoutDetail(*eventID)
+		eventX, err := getEventWithoutDetail(eventID)
 		if err != nil {
 			return nil, err
 		}
