@@ -134,6 +134,9 @@ func getEvents(all bool) ([]*Event, error) {
 		if err != nil {
 			return nil, err
 		}
+		if !all && !event.PublicFg {
+			continue
+		}
 		events = append(events, eventX)
 	}
 	return events, nil
