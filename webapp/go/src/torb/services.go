@@ -4,7 +4,6 @@ import (
 	"io"
 	"errors"
 	"html/template"
-	"database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
@@ -149,47 +148,95 @@ func getEvents(all bool) ([]*Event, error) {
 	return events, nil
 }
 
+
+func getSheet(id int64) (*Sheet, error) {
+	var s Sheet
+	s.ID = id
+	switch {
+	case id <= 50:
+		s.Num = id
+		s.Price = 5000
+		s.Rank = "S"
+	case 50 < id && id <= 200:
+		s.Num = id - 50
+		s.Price = 3000
+		s.Rank = "A"
+	case 200 < id && id <= 500:
+		s.Num = id - 200
+		s.Price = 1000
+		s.Rank = "B"
+	case 500 < id && id <= 1000:
+		s.Num = id - 500
+		s.Price = 0
+		s.Rank = "C"
+	default:
+		return nil, errors.New("invalid id error")
+	}
+
+	return &s, nil
+}
+
+func getRankAndNum(id int64) (string, int64) {
+	var rank string
+	var num int64
+	switch {
+	case id <= 50:
+		rank, num = "S", id
+	case 50 < id && id <= 200:
+		rank, num = "A", id - 50
+	case 200 < id && id <= 500:
+		rank, num = "B", id - 200
+	case 500 < id && id <= 1000:
+		rank, num = "C", id - 500
+	}
+	return rank, num
+}
+
 func getEvent(eventID, loginUserID int64) (*Event, error) {
 	var event Event
 	if err := db.QueryRow("SELECT * FROM events WHERE id = ?", eventID).Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
 		return nil, err
 	}
+	
+	event.Total = 1000
+	event.Remains = 1000
 	event.Sheets = map[string]*Sheets{
-		"S": &Sheets{},
-		"A": &Sheets{},
-		"B": &Sheets{},
-		"C": &Sheets{},
+		"S": &Sheets{Total: 50, Price: event.Price + 5000, Remains: 50},
+		"A": &Sheets{Total: 150, Price: event.Price + 3000, Remains: 150},
+		"B": &Sheets{Total: 300, Price: event.Price + 1000, Remains: 300},
+		"C": &Sheets{Total: 500, Price: event.Price, Remains: 500},
 	}
 
-	rows, err := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
+	for i:= 0; i < 1000; i++ {
+		sheet, err := getSheet(int64(i+1))
+		if err != nil {
+			return nil, err
+		}
+		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, sheet)
+	}
+
+	rows, err := db.Query("SELECT r.user_id, r.sheet_id, r.reserved_at FROM reservations r WHERE r.event_id = ? AND r.canceled_at IS NULL", event.ID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var sheet Sheet
-		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
-			return nil, err
-		}
-		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
-		event.Total++
-		event.Sheets[sheet.Rank].Total++
 
 		var reservation Reservation
-		err := db.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id, sheet_id HAVING reserved_at = MIN(reserved_at)", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt)
+		err := rows.Scan(&reservation.UserID, &reservation.SheetID, &reservation.ReservedAt)
+
 		if err == nil {
-			sheet.Mine = reservation.UserID == loginUserID
-			sheet.Reserved = true
-			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
-		} else if err == sql.ErrNoRows {
-			event.Remains++
-			event.Sheets[sheet.Rank].Remains++
+			rank, num := getRankAndNum(reservation.SheetID)
+			event.Sheets[rank].Detail[num-1].Mine = reservation.UserID == loginUserID
+			event.Sheets[rank].Detail[num-1].Reserved = true
+			event.Sheets[rank].Detail[num-1].ReservedAtUnix = reservation.ReservedAt.Unix()
+			event.Sheets[rank].Remains--
+			
+			event.Remains--
 		} else {
 			return nil, err
 		}
-
-		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
 	}
 
 	return &event, nil
