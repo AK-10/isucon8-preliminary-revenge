@@ -151,7 +151,6 @@ func getEvents(all bool) ([]*Event, error) {
 		}
 		events = append(events, &event)
 	}
-
 	for i, v := range events {
 		event, err := getEvent(v.ID, -1)
 		if err != nil {
