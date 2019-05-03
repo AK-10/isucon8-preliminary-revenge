@@ -318,7 +318,7 @@ func main() {
 			return err
 		}
 
-		res, err := tx.Exec("INSERT INTO reservations (event_id, sheet_id, user_id, reserved_at) VALUES (?, ?, ?, ?)", event.ID, (*sheet).ID, user.ID, time.Now().UTC().Format("2006-01-02 15:04:05.000000"))
+		res, err := tx.Exec("INSERT INTO reservations (event_id, sheet_id, user_id, reserved_at) VALUES (?, ?, ?, ?)", event.ID, sheet.ID, user.ID, time.Now().UTC().Format("2006-01-02 15:04:05.000000"))
 		if err != nil {
 			return err
 		}
@@ -331,7 +331,7 @@ func main() {
 		return c.JSON(202, echo.Map{
 			"id":         reservationID,
 			"sheet_rank": params.Rank,
-			"sheet_num":  (*sheet).Num,
+			"sheet_num":  sheet.Num,
 		})
 		// var sheet Sheet
 		// var reservationID int64
