@@ -302,15 +302,15 @@ func main() {
 			return resError(c, "invalid_rank", 400)
 		}
 
-		var sheet *Sheet
+		var sheet Sheet
+		if event.Sheets[params.Rank].Remains == 0 {
+			return resError(c, "sold_out", 400)
+		}
 		for _, s := range event.Sheets[params.Rank].Detail {
 			if !s.Reserved {
-				sheet = s
+				sheet = *s
 				break
 			}
-		}
-		if sheet == nil {
-			return resError(c, "sold_out", 400)
 		}
 
 		tx, err := db.Begin()
