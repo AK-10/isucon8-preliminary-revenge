@@ -47,6 +47,7 @@ ALTER TABLE reservations ADD INDEX reserved_at_idx(reserved_at);
 ALTER TABLE reservations ADD INDEX canceled_at_idx(canceled_at);
 ALTER TABLE reservations ADD INDEX reserved_at_canceled_at_idx(reserved_at, canceled_at);
 
+ALTER TABLE tablename ENGINE='MyISAM'
 -- ALTER TABLE events ADD INDEX public_fg_idx(public_fg);
 -- ALTER TABLE events ADD INDEX closed_fg_idx(closed_fg);
 -- ALTER TABLE events ADD INDEX public_closed_idx(public_fg, closed_fg);
