@@ -109,12 +109,12 @@ IF NOT EXISTS administrators
 (login_name)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
 
-ALTER TABLE reservations ADD INDEX event_id_idx(event_id) ENGINE=MyISAM;
-ALTER TABLE reservations ADD INDEX sheet_id_idx(sheet_id) ENGINE=MyISAM;
-ALTER TABLE reservations ADD INDEX user_id_idx(user_id) ENGINE=MyISAM;
-ALTER TABLE reservations ADD INDEX reserved_at_idx(reserved_at) ENGINE=MyISAM;
-ALTER TABLE reservations ADD INDEX canceled_at_idx(canceled_at) ENGINE=MyISAM;
-ALTER TABLE reservations ADD INDEX reserved_at_canceled_at_idx(reserved_at, canceled_at) ENGINE=MyISAM;
+ALTER TABLE reservations ADD INDEX event_id_idx(event_id);
+ALTER TABLE reservations ADD INDEX sheet_id_idx(sheet_id);
+ALTER TABLE reservations ADD INDEX user_id_idx(user_id);
+ALTER TABLE reservations ADD INDEX reserved_at_idx(reserved_at);
+ALTER TABLE reservations ADD INDEX canceled_at_idx(canceled_at);
+ALTER TABLE reservations ADD INDEX reserved_at_canceled_at_idx(reserved_at, canceled_at);
 
 -- ALTER TABLE events ADD INDEX public_fg_idx(public_fg);
 -- ALTER TABLE events ADD INDEX closed_fg_idx(closed_fg);
