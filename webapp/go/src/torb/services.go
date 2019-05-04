@@ -343,3 +343,36 @@ type Renderer struct {
 func (r *Renderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	return r.templates.ExecuteTemplate(w, name, data)
 }
+
+
+func validateRankNum(id *int, rank string, num int) error {
+	switch {
+		case rank == "S":
+			if 0 < num && num <= 50 {
+				*id = num
+			} else {
+				return errors.New("invalid sheet")
+			}
+		case rank == "A":
+			if 0 < num && num <= 150 {
+				*id = num + 50
+			} else {
+				return errors.New("invalid sheet")
+			}
+		case rank == "B":
+			if 0 < num && num <= 300 {
+				*id = num + 200
+			} else {
+				return errors.New("invalid sheet")
+			}
+		case rank == "C":
+			if 0 < num && num <= 500 {
+				*id = num + 500
+			} else {
+				return errors.New("invalid sheet")
+			}
+		default:
+			return errors.New("invalid sheet")
+	}
+	return nil
+}

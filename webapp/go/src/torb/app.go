@@ -403,12 +403,17 @@ func main() {
 			return resError(c, "invalid_rank", 404)
 		}
 
-		var sheet Sheet
-		if err := db.QueryRow("SELECT * FROM sheets WHERE `rank` = ? AND num = ?", rank, num).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
-			if err == sql.ErrNoRows {
-				return resError(c, "invalid_sheet", 404)
-			}
-			return err
+		// var sheet Sheet
+		// if err := db.QueryRow("SELECT * FROM sheets WHERE `rank` = ? AND num = ?", rank, num).Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
+		// 	if err == sql.ErrNoRows {
+		// 		return resError(c, "invalid_sheet", 404)
+		// 	}
+		// 	return err
+		// }
+		var sheetID int
+		numInt, _ := strconv.Atoi(num) 
+		if err := validateRankNum(&sheetID, rank, numInt); err != nil {
+			return resError(c, "invalid_sheet", 404)
 		}
 
 		tx, err := db.Begin()
@@ -417,7 +422,7 @@ func main() {
 		}
 
 		var reservation Reservation
-		if err := tx.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id HAVING reserved_at = MIN(reserved_at)", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
+		if err := tx.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id HAVING reserved_at = MIN(reserved_at)", event.ID, sheetID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
 			tx.Rollback()
 			if err == sql.ErrNoRows {
 				return resError(c, "not_reserved", 400)
