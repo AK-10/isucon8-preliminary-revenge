@@ -82,8 +82,8 @@ func getItemFromRedis(key string) (interface{}, bool) {
 	var altDeserialized []Sheet
 	json.Unmarshal(bytes, &deserialized)
 	json.Unmarshal(bytes, &altDeserialized)
-	log.Println(deserialized.([]Sheet))
 	log.Println(altDeserialized)
+	log.Println(deserialized.([]Sheet))
 	return deserialized, true
 }
 
