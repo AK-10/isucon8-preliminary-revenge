@@ -55,6 +55,9 @@ func appendSheet(sheet Sheet) bool {
 
 func getAllSheetFromRedis() ([]Sheet, bool) {
 	sheets, found := getItemFromRedis(sheetKey)
+	if !found {
+		return nil, found
+	}
 	return sheets.([]Sheet), found
 }
 
