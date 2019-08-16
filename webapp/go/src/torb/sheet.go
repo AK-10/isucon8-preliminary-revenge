@@ -79,8 +79,12 @@ func getItemsFromRedis(key string) (interface{}, bool) {
 		return nil, false
 	}
 	var deserialized []interface{}
+	var altDes []Sheet
 	json.Unmarshal(bytes, &deserialized)
-	log.Println(deserialized)
+	json.Unmarshal(bytes, &altDes)
+	for _, v := range altDes {
+		log.Println(v)
+	}
 	return deserialized, true
 }
 
