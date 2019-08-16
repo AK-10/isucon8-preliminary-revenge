@@ -54,11 +54,13 @@ func appendSheet(sheet Sheet) bool {
 }
 
 func getAllSheetFromRedis() ([]Sheet, bool) {
-	sheets, found := getItemFromRedis(sheetKey)
+	items, found := getItemFromRedis(sheetKey)
 	if !found {
 		return nil, found
 	}
-	return sheets.([]Sheet), found
+
+	sheets, ok := items.([]Sheet)
+	return sheets, ok
 }
 
 func getItemFromRedis(key string) (interface{}, bool) {
