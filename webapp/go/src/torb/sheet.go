@@ -19,7 +19,7 @@ func initSheets() error {
 	}
 	defer rows.Close()
 
-	var sheets []Sheet 
+	var sheets []Sheet
 	for rows.Next() {
 		var sheet Sheet
 		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
@@ -79,8 +79,11 @@ func getItemFromRedis(key string) (interface{}, bool) {
 		return nil, false
 	}
 	var deserialized interface{}
+	var altDeserialized []Sheet
 	json.Unmarshal(bytes, &deserialized)
-	log.Println(deserialized)
+	json.Unmarshal(bytes, &altDeserialized)
+	log.Println(deserialized.([]Sheet))
+	log.Println(altDeserialized)
 	return deserialized, true
 }
 
