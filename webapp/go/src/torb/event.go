@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -56,7 +57,10 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		"C": &Sheets{},
 	}
 
-	sheets := getAllSheetFromRedis()
+	sheets, found := getAllSheetFromRedis()
+	if !found {
+		return nil, errors.New("sheet not found")
+	}
 
 	for _, sheet := range sheets {
 		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price

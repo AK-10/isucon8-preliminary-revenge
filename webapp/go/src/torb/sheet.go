@@ -2,12 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gomodule/redigo/redis"
 )
-
-
 
 const (
 	sheetKey = "sheet"
@@ -33,7 +32,6 @@ func initSheets() error {
 	return nil
 }
 
-
 func setSheetsToRedis(sheets []Sheet) {
 	conn, err := redis.Dial("tcp", "localhost:6379")
     if err != nil {
@@ -45,38 +43,61 @@ func setSheetsToRedis(sheets []Sheet) {
 	conn.Do("SET", sheetKey, serialized)
 }
 
-func appendSheet(sheet Sheet) {
-	sheets := getAllSheetFromRedis()
+func appendSheet(sheet Sheet) bool {
+	sheets, found := getAllSheetFromRedis()
+	if !found {
+		return false
+	}
 	sheets = append(sheets, sheet)
 	setSheetsToRedis(sheets)
+	return true
 }
 
-func getAllSheetFromRedis() []Sheet {
+func getAllSheetFromRedis() ([]Sheet, bool) {
+	sheets, found := getItemFromRedis(sheetKey)
+	return sheets.([]Sheet), found
+}
+
+func getItemFromRedis(key string) (interface{}, bool) {
 	conn, err := redis.Dial("tcp", "localhost:6379")
     if err != nil {
         panic(err)
-    }
+	}
 	defer conn.Close()
-	bytes, _ := redis.Bytes(conn.Do("GET", sheetKey))
-	var deserialized []Sheet
+	bytes, err := redis.Bytes(conn.Do("GET", sheetKey))
+	if err == redis.ErrNil {
+		log.Println("key not found")
+		return nil, false
+	}
+	if err != nil {
+		log.Println("")
+		return nil, false
+	}
+	var deserialized interface{}
 	json.Unmarshal(bytes, deserialized)
-	return deserialized
+	return deserialized, true
 }
 
 // key構成を頑張ってredisだけで走査する vs sliceをredisに持ってgo側で走査する
-func findSheetWhere(condition func(s Sheet) bool) (bool, Sheet) {
-	sheets := getAllSheetFromRedis()
+func findSheetWhere(condition func(s Sheet) bool) (Sheet, bool) {
+	sheets, found := getAllSheetFromRedis()
+	if !found {
+		return Sheet{}, false
+	}
 	for _, v := range sheets {
 		if condition(v) {
-			return true, v
+			return v, true
 		}
 	}
-	return false, Sheet{}
+	return Sheet{}, false
 }
 
 // limitつけてあげた方が良い？
-func findSheetsWhere(condition func(s Sheet) bool) []Sheet {
-	sheets := getAllSheetFromRedis()
+func findSheetsWhere(condition func(s Sheet) bool) ([]Sheet, bool) {
+	sheets, found := getAllSheetFromRedis()
+	if !found {
+		return nil, false
+	}
 	var resSheets []Sheet
 	for _, v := range sheets {
 		if condition(v) {
@@ -84,17 +105,7 @@ func findSheetsWhere(condition func(s Sheet) bool) []Sheet {
 		}
 	}
 
-	return resSheets
-}
-
-func getSheetById(id int64) *Sheet {
-	sheets := getAllSheetFromRedis()
-	for _, v := range sheets {
-		if v.ID == id {
-			return &v
-		}
-	}
-	return nil
+	return resSheets, len(resSheets) > 0
 }
 
 
