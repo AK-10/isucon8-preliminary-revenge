@@ -25,6 +25,7 @@ func initSheets() error {
 		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
 			return err
 		}
+		log.Println(sheet)
 		sheets = append(sheets, sheet)
 	}
 
@@ -53,17 +54,42 @@ func appendSheet(sheet Sheet) bool {
 	return true
 }
 
+// func getAllSheetFromRedis() ([]Sheet, bool) {
+// 	items, found := getItemsFromRedis(sheetKey)
+// 	if !found {
+// 		return nil, found
+// 	}
+
+// 	sheets, ok := items.([]Sheet)
+// 	return sheets, ok
+// }
+
 func getAllSheetFromRedis() ([]Sheet, bool) {
-	items, found := getItemsFromRedis(sheetKey)
-	if !found {
-		return nil, found
+	conn, err := redis.Dial("tcp", "localhost:6379")
+    if err != nil {
+        panic(err)
+	}
+	defer conn.Close()
+	bytes, err := redis.Bytes(conn.Do("GET", sheetKey))
+	if err == redis.ErrNil {
+		log.Println(err)
+		return nil, false
+	}
+	if err != nil {
+		log.Println(err)
+		return nil, false
+	}
+	var deserialized []Sheet
+	json.Unmarshal(bytes, &deserialized)
+
+	for _, v := range deserialized {
+		log.Println(v)
 	}
 
-	sheets, ok := items.([]Sheet)
-	return sheets, ok
+	return deserialized, true	
 }
 
-func getItemsFromRedis(key string) (interface{}, bool) {
+func getItemsFromRedis(key string) ([]interface{}, bool) {
 	conn, err := redis.Dial("tcp", "localhost:6379")
     if err != nil {
         panic(err)
