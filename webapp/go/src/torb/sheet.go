@@ -79,7 +79,7 @@ func getItemFromRedis(key string) (interface{}, bool) {
 		return nil, false
 	}
 	var deserialized interface{}
-	json.Unmarshal(bytes, deserialized)
+	json.Unmarshal(bytes, &deserialized)
 	log.Println(deserialized)
 	return deserialized, true
 }
