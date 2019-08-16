@@ -9,4 +9,6 @@ deps:
 
 .PHONY: build
 build:
-	GOPATH=`pwd`:`pwd`/vendor go build -v torb
+	GOPATH=`pwd`
+	export GOPATH
+	go build -v torb
