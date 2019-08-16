@@ -54,7 +54,7 @@ func appendSheet(sheet Sheet) bool {
 }
 
 func getAllSheetFromRedis() ([]Sheet, bool) {
-	items, found := getItemFromRedis(sheetKey)
+	items, found := getItemsFromRedis(sheetKey)
 	if !found {
 		return nil, found
 	}
@@ -63,7 +63,7 @@ func getAllSheetFromRedis() ([]Sheet, bool) {
 	return sheets, ok
 }
 
-func getItemFromRedis(key string) (interface{}, bool) {
+func getItemsFromRedis(key string) (interface{}, bool) {
 	conn, err := redis.Dial("tcp", "localhost:6379")
     if err != nil {
         panic(err)
@@ -78,13 +78,8 @@ func getItemFromRedis(key string) (interface{}, bool) {
 		log.Println(err)
 		return nil, false
 	}
-	var deserialized interface{}
-	var altDeserialized []Sheet
+	var deserialized []interface{}
 	json.Unmarshal(bytes, &deserialized)
-	json.Unmarshal(bytes, &altDeserialized)
-	log.Println(altDeserialized)
-	log.Println(deserialized)
-	log.Println(deserialized.([]Sheet))
 	return deserialized, true
 }
 
