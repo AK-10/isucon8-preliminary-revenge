@@ -12,6 +12,10 @@ const (
 	sheetKey = "sheet"
 )
 
+type RedisSheets struct {
+	Sheets []Sheet
+}
+
 func initSheets() error {
 	rows, err := db.Query("SELECT * FROM sheets")
 	if err != nil {
@@ -40,7 +44,7 @@ func setSheetsToRedis(sheets []Sheet) {
     }
 	defer conn.Close()
 	// primitive型以外はjson.Marshalする
-	serialized, _ := json.Marshal(sheets)
+	serialized, _ := json.Marshal(RedisSheets{Sheets: sheets})
 	conn.Do("SET", sheetKey, serialized)
 }
 
@@ -54,48 +58,23 @@ func appendSheet(sheet Sheet) bool {
 	return true
 }
 
-// func getAllSheetFromRedis() ([]Sheet, bool) {
-// 	items, found := getItemsFromRedis(sheetKey)
-// 	if !found {
-// 		return nil, found
-// 	}
-
-// 	sheets, ok := items.([]Sheet)
-// 	return sheets, ok
-// }
-
 func getAllSheetFromRedis() ([]Sheet, bool) {
-	conn, err := redis.Dial("tcp", "localhost:6379")
-    if err != nil {
-        panic(err)
-	}
-	defer conn.Close()
-	bytes, err := redis.Bytes(conn.Do("GET", sheetKey))
-	if err == redis.ErrNil {
-		log.Println(err)
-		return nil, false
-	}
-	if err != nil {
-		log.Println(err)
-		return nil, false
-	}
-	var deserialized []Sheet
-	json.Unmarshal(bytes, &deserialized)
-
-	for _, v := range deserialized {
-		log.Println(v)
+	items, found := getItemFromRedis(sheetKey)
+	if !found {
+		return nil, found
 	}
 
-	return deserialized, true	
+	rs, ok := items.(RedisSheets)
+	return rs.Sheets, ok
 }
 
-func getItemsFromRedis(key string) ([]interface{}, bool) {
+func getItemFromRedis(key string) (interface{}, bool) {
 	conn, err := redis.Dial("tcp", "localhost:6379")
     if err != nil {
         panic(err)
 	}
 	defer conn.Close()
-	bytes, err := redis.Bytes(conn.Do("GET", sheetKey))
+	bytes, err := redis.Bytes(conn.Do("GET", key))
 	if err == redis.ErrNil {
 		log.Println(err)
 		return nil, false
@@ -104,13 +83,9 @@ func getItemsFromRedis(key string) ([]interface{}, bool) {
 		log.Println(err)
 		return nil, false
 	}
-	var deserialized []interface{}
-	var altDes []Sheet
+	var deserialized interface{}
 	json.Unmarshal(bytes, &deserialized)
-	json.Unmarshal(bytes, &altDes)
-	for _, v := range altDes {
-		log.Println(v)
-	}
+
 	return deserialized, true
 }
 
