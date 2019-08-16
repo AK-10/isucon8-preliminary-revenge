@@ -66,11 +66,11 @@ func getItemFromRedis(key string) (interface{}, bool) {
 	defer conn.Close()
 	bytes, err := redis.Bytes(conn.Do("GET", sheetKey))
 	if err == redis.ErrNil {
-		log.Println("key not found")
+		log.Println(err)
 		return nil, false
 	}
 	if err != nil {
-		log.Println("")
+		log.Println(err)
 		return nil, false
 	}
 	var deserialized interface{}
