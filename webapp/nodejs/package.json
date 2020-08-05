@@ -11,7 +11,7 @@
     "cookie-signature": "^1.1.0",
     "core-js": "^3.0.0-beta.3",
     "ejs": "*",
-    "fastify": "^1.11.2",
+    "fastify": "^2.15.1",
     "fastify-cookie": "*",
     "fastify-mysql": "*",
     "fastify-plugin": "*",
